@@ -172,11 +172,13 @@ bool StompPlanner::solve(planning_interface::MotionPlanResponse &res)
   ros::WallTime start_time = ros::WallTime::now();
   planning_interface::MotionPlanDetailedResponse detailed_res;
   bool success = solve(detailed_res);
-  moveit_msgs::RobotTrajectory test;
-  detailed_res.trajectory_.back()->getRobotTrajectoryMsg(test);
-  ROS_INFO_STREAM("This is not the same number of luck "<<test.joint_trajectory.header.seq);
-  // construct the compact response from the detailed one
-  res.trajectory_ = detailed_res.trajectory_.back();
+  if(success)
+  {
+    moveit_msgs::RobotTrajectory test;
+    detailed_res.trajectory_.back()->getRobotTrajectoryMsg(test);
+    // construct the compact response from the detailed one
+    res.trajectory_ = detailed_res.trajectory_.back();
+  }
   ros::WallDuration wd = ros::WallTime::now() - start_time;
   res.planning_time_ = ros::Duration(wd.sec, wd.nsec).toSec();
   res.error_code_ = detailed_res.error_code_;
