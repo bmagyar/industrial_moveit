@@ -435,11 +435,12 @@ bool StompPlanner::getSeedParameters(Eigen::MatrixXd& parameters) const
         const std::string base_frame = gc.position_constraints.front().header.frame_id;
         const std::string end_eff_frame = gc.position_constraints.front().link_name;
         std::map<std::string, double> fixed_joints = getFixedJointsMap(urdf_param, base_frame, end_eff_frame, group, request_.start_state.joint_state);
+        std::vector<size_t> joints_bijection = getBijection(urdf_param, base_frame, end_eff_frame, group);
         TRAC_IK::TRAC_IK tracik_solver(base_frame, end_eff_frame, urdf_param, timeout, eps, fixed_joints);
         if(ikFromCartesianConstraints(gc.position_constraints.front(), gc.orientation_constraints.front(),
                                       group, goal, tracik_solver))
         {
-          goal = filter(group, goal);
+          goal = filter(goal, joints_bijection);
           found_goal = true;
           break;
         }
@@ -593,8 +594,9 @@ bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanR
   const std::string base_frame = constraints[0].position_constraints[0].header.frame_id;
   const std::string end_eff_frame = constraints[0].position_constraints[0].link_name;
 
-  std::map<std::string, double> fixed_joints = getFixedJointsMap(urdf_param, base_frame, end_eff_frame, joint_group, request_.start_state.joint_state);
+  const std::map<std::string, double> fixed_joints = getFixedJointsMap(urdf_param, base_frame, end_eff_frame, joint_group, request_.start_state.joint_state);
   TRAC_IK::TRAC_IK tracik_solver(base_frame, end_eff_frame, urdf_param, timeout, eps, fixed_joints);
+  const std::vector<size_t> joints_bijection = getBijection(urdf_param, base_frame, end_eff_frame, joint_group);
 
   Eigen::VectorXd start_state;
   robotStateToEigen(req.start_state.joint_state, robot_model_, group_, start_state);
@@ -614,11 +616,14 @@ bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanR
                                   tracik_solver,
                                   start_state))
     {
-      auto joint_pos2 = filter(joint_group, joint_pos);
+      auto joint_pos2 = filter(joint_pos, joints_bijection);
       for(auto j=0; j<joint_pos2.size(); ++j)
         joint_pt.positions[j] = joint_pos2(j);
       //ROS_ERROR_STREAM("Start state shape: " << shape(start_state));
-      //ROS_ERROR_STREAM("IK solution shape: " << shape(joint_pos2));
+      //ROS_CYAN_STREAM(start_state);
+      //ROS_MAGENTA_STREAM(joint_pos2);
+      //ROS_ERROR_STREAM("IK solution shape: " << shape(joint_pos));
+      //ROS_ERROR_STREAM("Filtered IK solution shape: " << shape(joint_pos2));
       start_state = joint_pos; // passing the previous joint_pos as hint for the next one!
       seed.points.push_back(joint_pt);
     }
@@ -779,11 +784,12 @@ bool StompPlanner::getStartAndGoal(Eigen::VectorXd& start, Eigen::VectorXd& goal
         const std::string base_frame = gc.position_constraints.front().header.frame_id;
         const std::string end_eff_frame = gc.position_constraints.front().link_name;
         std::map<std::string, double> fixed_joints = getFixedJointsMap(urdf_param, base_frame, end_eff_frame, joint_group, request_.start_state.joint_state);
+        std::vector<size_t> joints_bijection = getBijection(urdf_param, base_frame, end_eff_frame, joint_group);
         TRAC_IK::TRAC_IK tracik_solver(base_frame, end_eff_frame, urdf_param, timeout, eps, fixed_joints);
         if(ikFromCartesianConstraints(gc.position_constraints.front(), gc.orientation_constraints.front(),
                                       joint_group, goal, tracik_solver))
         {
-          goal = filter(joint_group, goal);
+          goal = filter(goal, joints_bijection);
           found_goal = true;
           break;
         }

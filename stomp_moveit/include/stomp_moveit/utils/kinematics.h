@@ -683,18 +683,77 @@ namespace kinematics
     return true;
   }
 
-
-  Eigen::VectorXd filter(const moveit::core::JointModelGroup* jmg, const Eigen::VectorXd& vec)
+  int countNonFixedJoints(const std::vector<KDL::Segment> segments, const std::vector<std::string> activeJMGJoints)
   {
-    Eigen::VectorXd filtered(jmg->getActiveJointModelNames().size());
+    int count = 0;
+    for(const KDL::Segment& s : segments)
+    {
+      const KDL::Joint& joint = s.getJoint();
+      if(joint.getType() != KDL::Joint::None)
+      {
+        auto result = std::find(std::begin(activeJMGJoints), std::end(activeJMGJoints), joint.getName());
+        if(result != std::end(activeJMGJoints))
+        {
+          count++;
+        }
+      }
+    }
+    return count;
 
-    ROS_CYAN_STREAM(jmg->getActiveJointModelNames());
+  }
 
-    const std::vector<unsigned int>& bij = jmg->getKinematicsSolverJointBijection();
-    //ROS_YELLOW_STREAM(bij);
+  std::vector<size_t> getBijection(const std::string& urdf_param, const std::string& base_frame, 
+                                   const std::string& end_eff_frame, const moveit::core::JointModelGroup* jmg)
+  {
+    //  not going to use this solver, only need it to parse the urdf and gives us the chain
+    TRAC_IK::TRAC_IK solver(base_frame, end_eff_frame, urdf_param);
+    KDL::Chain chain;
+    if(not solver.getKDLChain(chain))
+    {
+      ROS_FATAL("Solver failed to set up, this shouldn't happen!");
+    }
+
+    const auto& activeJMGJoints = jmg->getActiveJointModelNames();
+    std::vector<size_t> bij(countNonFixedJoints(chain.segments, activeJMGJoints));
+
+    size_t i = 0;
+    for(const KDL::Segment& s : chain.segments)
+    {
+      const KDL::Joint& joint = s.getJoint();
+      if(joint.getType() != KDL::Joint::None)
+      {
+        auto result = std::find(std::begin(activeJMGJoints), std::end(activeJMGJoints), joint.getName());
+        if(result != std::end(activeJMGJoints))
+        {
+          size_t idx = std::distance(std::begin(activeJMGJoints), result);
+          bij[idx] = i;
+          //ROS_GREEN_STREAM(joint.getName() << " with index " << i << "->" << idx);
+        }
+        else
+        {
+          ;
+          //ROS_RED_STREAM(joint.getName() << " with index " << i << "-> NONE");
+        }
+        ++i;
+      }
+      else
+      {
+        ;
+        //ROS_YELLOW_STREAM(joint.getName() << " ignored in indexing");
+      }
+    }
+
+    //ROS_WHITE_STREAM("Bijection" << bij);
+
+    return bij;
+  }
+
+  Eigen::VectorXd filter(const Eigen::VectorXd& vec, const std::vector<size_t>& bij)
+  {
+    Eigen::VectorXd filtered(bij.size());
 
     for (std::size_t i = 0; i < bij.size(); ++i)
-      filtered[bij[i]] = vec[i];
+      filtered[i] = vec[bij[i]];
 
     return filtered;
   }
@@ -724,11 +783,12 @@ namespace kinematics
         auto result = std::find(std::begin(activeJMGJoints), std::end(activeJMGJoints), joint.getName());
         if(result != std::end(activeJMGJoints))
         {
-          ROS_GREEN_STREAM(joint.getName());
+          ;
+          //ROS_GREEN_STREAM(joint.getName());
         }
         else
         {
-          ROS_RED_STREAM(joint.getName());
+          //ROS_RED_STREAM(joint.getName());
           size_t idx = std::distance(start_state.name.begin(), find(start_state.name.begin(), start_state.name.end(), joint.getName()));
           fixed_joints[joint.getName()] = start_state.position[idx];
           //result.insert( std::pair<std::string, double>(joint.getName(), start_state.position[idx]));
@@ -736,13 +796,14 @@ namespace kinematics
       }
       else
       {
-        ROS_YELLOW_STREAM(joint.getName());
+        ;
+        //ROS_YELLOW_STREAM(joint.getName());
       }
     }
 
-    ROS_WHITE_STREAM("Fixed joints:");
-    for(const auto& p : fixed_joints)
-      ROS_WHITE_STREAM("(" << p.first << ", " << p.second << ")");
+    // ROS_WHITE_STREAM("Fixed joints:");
+    // for(const auto& p : fixed_joints)
+    //   ROS_WHITE_STREAM("(" << p.first << ", " << p.second << ")");
 
     return fixed_joints;
   }
@@ -787,8 +848,8 @@ namespace kinematics
 
     if(rc >= 0)
     {
-      ROS_YELLOW_STREAM("IK done, shape is " << shape(result));
       result = ik_result.data;
+      ROS_YELLOW_STREAM("IK done, shape is " << shape(result));
       return true;
     }
     else
