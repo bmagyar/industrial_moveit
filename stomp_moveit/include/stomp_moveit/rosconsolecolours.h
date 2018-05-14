@@ -18,18 +18,24 @@
 template <typename T>
 std::ostream& operator<< (std::ostream& stream, const std::vector<T>& list)
 {
+  stream << "[";
   for(const T& elem : list)
     stream << elem << ", ";
-  stream.seekp(-2, std::ios_base::end); // remove last ", "
+  if(not list.empty())
+    stream.seekp(-2, std::ios_base::end); // remove last ", "
+  stream << "]";
   return stream;
 }
 
 template <typename T>
 std::ostream& operator<< (std::ostream& stream, const std::deque<T>& list)
 {
+  stream << "[";
   for(const T& elem : list)
     stream << elem << ", ";
-  stream.seekp(-2, std::ios_base::end); // remove last ", "
+  if(not list.empty())
+    stream.seekp(-2, std::ios_base::end); // remove last ", "
+  stream << "]";
   return stream;
 }
 
