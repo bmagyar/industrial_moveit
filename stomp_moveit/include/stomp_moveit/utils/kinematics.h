@@ -668,6 +668,7 @@ namespace kinematics
     if(!tmp_state->satisfiesBounds())
     {
       ROS_ERROR("Joint state is out of bounds");
+      ROS_WARN_STREAM(tmp_state);
       return false;
     }
 
@@ -758,6 +759,13 @@ namespace kinematics
     return filtered;
   }
 
+  template <typename T1, typename T2>
+  void filterInto(const T1& in, T2& out, const std::vector<size_t>& mapping)
+  {
+    for (std::size_t i = 0; i < mapping.size(); ++i)
+      out[i] = in[mapping[i]];
+  }
+
   std::map<std::string, double> 
   getFixedJointsMap(const std::string& urdf_param, const std::string& base_frame, 
                     const std::string& end_eff_frame, const moveit::core::JointModelGroup* jmg, 
@@ -836,8 +844,14 @@ namespace kinematics
 
     if(hint.size() > 0)
     {
-      //ROS_ERROR_STREAM("Using " << hint << " as IK hint");
-      nominal.data = hint;
+      if(nominal.data.size() == hint.size())
+      {
+        nominal.data = hint;
+      }
+      else
+      {
+        ROS_ERROR_STREAM("IK hint size mismatch: nominal size is " << nominal.data.size() << ", hint size is " << hint.size());
+      }
     }
 
     KDL::Twist tolerance;
@@ -849,7 +863,7 @@ namespace kinematics
     if(rc >= 0)
     {
       result = ik_result.data;
-      ROS_YELLOW_STREAM("IK done, shape is " << shape(result));
+      //ROS_YELLOW_STREAM("IK done, shape is " << shape(result));
       return true;
     }
     else

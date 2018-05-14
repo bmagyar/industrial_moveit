@@ -605,9 +605,6 @@ bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanR
 
   for (auto i = 0; i < constraints[0].position_constraints.size(); ++i)
   {
-    trajectory_msgs::JointTrajectoryPoint joint_pt;
-    joint_pt.positions.resize(joint_group->getActiveJointModelNames().size(), 0.0);
-
     Eigen::VectorXd joint_pos;
     if(ikFromCartesianConstraints(constraints[0].position_constraints[i],
                                   constraints[0].orientation_constraints[i],
@@ -616,9 +613,12 @@ bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanR
                                   tracik_solver,
                                   start_state))
     {
-      auto joint_pos2 = filter(joint_pos, joints_bijection);
-      for(auto j=0; j<joint_pos2.size(); ++j)
-        joint_pt.positions[j] = joint_pos2(j);
+      trajectory_msgs::JointTrajectoryPoint joint_pt;
+//      ROS_CYAN_STREAM(joint_group->getActiveJointModelNames());
+      joint_pt.positions.resize(joint_group->getActiveJointModelNames().size(), 0.0);
+      
+      filterInto(joint_pos, joint_pt.positions, joints_bijection);
+      
       //ROS_ERROR_STREAM("Start state shape: " << shape(start_state));
       //ROS_CYAN_STREAM(start_state);
       //ROS_MAGENTA_STREAM(joint_pos2);
