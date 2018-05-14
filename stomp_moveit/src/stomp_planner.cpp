@@ -233,7 +233,7 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
 
   },false);
 
-  ROS_YELLOW_STREAM("***********NOW " << (use_seed?"GOING":"NOT GOING") << " INTO SEEEDED MODE**********");
+  ROS_YELLOW_STREAM("***********" << (use_seed?"":" NOT") << " SEEEDED MODE **********");
 
   if (use_seed)
   {
@@ -731,7 +731,6 @@ bool StompPlanner::getStartAndGoal(Eigen::VectorXd& start, Eigen::VectorXd& goal
     if(!robotStateToEigen(request_.start_state.joint_state, robot_model_, group_, start))
     {
       ROS_ERROR("%s Failed to extract start state from MotionPlanRequest",getName().c_str());
-      ROS_ERROR_STREAM("************* " << request_.start_state.joint_state.name.size());
       return false;
     }
 
