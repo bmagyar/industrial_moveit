@@ -114,23 +114,35 @@ bool JointLimits::setMotionPlanRequest(const planning_scene::PlanningSceneConstP
   }
 
 
+  //  Check if there's a goal defined at all
   if(req.goal_constraints.empty())
   {
       ROS_WARN_NAMED(getName().c_str(), "CANNOT LOCK GOAL: Goal State is not specified. Moving on as if lock_goal was false.");
       lock_goal_ = false;
   }
 
+  for(auto& gc: req.goal_constraints)
+  {
+    if(gc.joint_constraints.empty())
+    {
+        ROS_WARN_NAMED(getName().c_str(), "CANNOT LOCK GOAL: Goal State is not specified. Moving on as if lock_goal was false.");
+        lock_goal_ = false;
+    }
+  }
+
   // saving goal state
   if(lock_goal_)
   {
     bool goal_state_saved = false;
+
+    ROS_ERROR_STREAM("Got " << req.goal_constraints[0].joint_constraints.size() << " joint constraints");
+
     for(auto& gc: req.goal_constraints)
     {
-      if(gc.position_constraints.empty())
+      for(auto& jc : gc.joint_constraints)
       {
-          ROS_WARN_NAMED(getName().c_str(), "CANNOT LOCK GOAL: Goal State is not specified. Moving on as if lock_goal was false.");
-          lock_goal_ = false;
-          break;
+        goal_state_->setVariablePosition(jc.joint_name,jc.position);
+        ROS_INFO_STREAM("name: " << jc.joint_name << "pos: " << jc.position);
       }
 
       if(!goal_state_->satisfiesBounds(robot_model_->getJointModelGroup(group_name_), 0.1))
@@ -139,11 +151,7 @@ bool JointLimits::setMotionPlanRequest(const planning_scene::PlanningSceneConstP
         break;
       }
 
-      for(auto& jc : gc.joint_constraints)
-      {
-        goal_state_->setVariablePosition(jc.joint_name,jc.position);
-        goal_state_saved = true;
-      }
+      goal_state_saved = true;
     }
 
     if(!goal_state_saved)
