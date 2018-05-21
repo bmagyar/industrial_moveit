@@ -33,7 +33,7 @@
 #include <stomp_moveit/utils/polynomial.h>
 
 #include <trac_ik/trac_ik.hpp>
-#include <stomp_moveit/rosconsolecolours.h>
+#include <stomp_moveit/rosconsole_extras.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
 
