@@ -243,7 +243,6 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
     {
       moveit::core::RobotStatePtr state(new moveit::core::RobotState(robot_model_));
       const std::vector<std::string> joint_names= state->getJointModelGroup(group_)->getActiveJointModelNames();
-      request_.start_state = robotStateFromEigen(initial_parameters.leftCols(1), joint_names, state->getVariableNames());
       request_.goal_constraints.clear();
       request_.goal_constraints.push_back(jointConstraintsFromEigen(initial_parameters.rightCols(1), joint_names));
     }
@@ -614,7 +613,6 @@ bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanR
                                   start_state))
     {
       trajectory_msgs::JointTrajectoryPoint joint_pt;
-//      ROS_CYAN_STREAM(joint_group->getActiveJointModelNames());
       joint_pt.positions.resize(joint_group->getActiveJointModelNames().size(), 0.0);
       
       filterInto(joint_pos, joint_pt.positions, joints_bijection);
