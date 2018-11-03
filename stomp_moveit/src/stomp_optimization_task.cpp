@@ -305,6 +305,7 @@ bool StompOptimizationTask::computeCosts(const Eigen::MatrixXd& parameters,
     {
       return false;
     }
+    ROS_ERROR_STREAM("****************************** " << cf->getName() << " Cost calculation was " << (valid?"valid":"invalid"));
 
     validity &= valid;
 
