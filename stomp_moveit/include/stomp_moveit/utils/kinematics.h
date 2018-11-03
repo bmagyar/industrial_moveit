@@ -34,7 +34,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <XmlRpcException.h>
 #include <moveit_msgs/Constraints.h>
-#include <stomp_moveit/rosconsolecolours.h>
+#include <stomp_moveit/rosconsole_extras.h>
 #include <trac_ik/trac_ik.hpp>
 
 
@@ -831,7 +831,10 @@ namespace kinematics
 
     KDL::Chain chain;
     if(not tracik_solver.getKDLChain(chain))
+    {
+      ROS_ERROR_STREAM("Invalid IK chain, what the heck mate!");
       return false;
+    }
 
     KDL::Frame end_effector_pose = positionConstraintsToKDLFrame(pos_constraint);
 
