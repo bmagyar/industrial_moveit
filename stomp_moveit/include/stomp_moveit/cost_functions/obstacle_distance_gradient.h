@@ -115,7 +115,7 @@ protected:
    * @param longest_valid_joint_move  The maximum distance that the joints are allowed to move before checking for collisions.
    * @return  True if the interval is collision free, false otherwise.
    */
-  bool checkIntermediateCollisions(const Eigen::VectorXd& start, const Eigen::VectorXd& end,double longest_valid_joint_move);
+  bool checkIntermediateCollisions(const Eigen::VectorXd& start, const Eigen::VectorXd& end,double longest_valid_joint_move, bool verbose=false);
 
 
   std::string name_;

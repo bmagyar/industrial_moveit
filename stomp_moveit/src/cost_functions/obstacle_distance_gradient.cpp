@@ -28,6 +28,7 @@
 #include <ros/console.h>
 #include <pluginlib/class_list_macros.h>
 #include <moveit/robot_state/conversions.h>
+#include <stomp_core/rosconsole_extras.h>
 
 PLUGINLIB_EXPORT_CLASS(stomp_moveit::cost_functions::ObstacleDistanceGradient,stomp_moveit::cost_functions::StompCostFunction)
 static const double LONGEST_VALID_JOINT_MOVE = 0.01;
@@ -132,7 +133,7 @@ bool ObstacleDistanceGradient::computeCosts(const Eigen::MatrixXd& parameters, s
                                             std::size_t num_timesteps, int iteration_number, int rollout_number,
                                             Eigen::VectorXd& costs, bool& validity)
 {
-
+  // MeasureTime timer("ObstacleDistanceGradient::computeCosts");
   if(!robot_state_)
   {
     ROS_ERROR("%s Robot State has not been updated",getName().c_str());
@@ -157,15 +158,19 @@ bool ObstacleDistanceGradient::computeCosts(const Eigen::MatrixXd& parameters, s
   validity = true;
   for (auto t=start_timestep; t<start_timestep + num_timesteps; ++t)
   {
-
     if(!skip_next_check)
     {
+// {
+//       MeasureTime timer("ObstacleDistanceGradient::computeCosts::setShitUp");
       collision_result_.clear();
       robot_state_->setJointGroupPositions(joint_group,parameters.col(t));
       robot_state_->update();
       collision_result_.distance = max_distance_;
-
+// }
+// {
+//       MeasureTime timer("ObstacleDistanceGradient::computeCosts::checkSelfCollision");
       planning_scene_->checkSelfCollision(collision_request_,collision_result_,*robot_state_,planning_scene_->getAllowedCollisionMatrix());
+// }
       dist = collision_result_.collision ? -1.0 :collision_result_.distance ;
 
       if(dist >= max_distance_)
@@ -175,6 +180,7 @@ bool ObstacleDistanceGradient::computeCosts(const Eigen::MatrixXd& parameters, s
       else if(dist < 0)
       {
         costs(t) = 1.0; // in collision
+        //ROS_ERROR_STREAM("ObstacleDistanceGradient detected state in collision");
         validity = false;
       }
       else
@@ -192,6 +198,7 @@ bool ObstacleDistanceGradient::computeCosts(const Eigen::MatrixXd& parameters, s
       {
         costs(t) = 1.0;
         costs(t+1) = 1.0;
+        ROS_ERROR_STREAM("ObstacleDistanceGradient detected intermediate collision between points " << t << " and " << t+1);
         validity = false;
         skip_next_check = true;
       }
@@ -207,8 +214,10 @@ bool ObstacleDistanceGradient::computeCosts(const Eigen::MatrixXd& parameters, s
 }
 
 bool ObstacleDistanceGradient::checkIntermediateCollisions(const Eigen::VectorXd& start,
-                                                           const Eigen::VectorXd& end,double longest_valid_joint_move)
+                                                           const Eigen::VectorXd& end,double longest_valid_joint_move,
+                                                           bool verbose)
 {
+  //MeasureTime timer("ObstacleDistanceGradient::checkIntermediateCollisions");
   Eigen::VectorXd diff = end - start;
   int num_intermediate = std::ceil(((diff.cwiseAbs())/longest_valid_joint_move).maxCoeff()) - 1;
   if(num_intermediate < 1.0)
@@ -243,7 +252,7 @@ bool ObstacleDistanceGradient::checkIntermediateCollisions(const Eigen::VectorXd
   {
     interval = i*dt;
     start_state->interpolate(*end_state,interval,*mid_state) ;
-    if(planning_scene_->isStateColliding(*mid_state))
+    if(planning_scene_->isStateColliding(*mid_state, "", verbose))
     {
       return false;
     }

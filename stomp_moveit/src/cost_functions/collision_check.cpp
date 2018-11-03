@@ -262,6 +262,11 @@ bool CollisionCheck::computeCosts(const Eigen::MatrixXd& parameters,
         collision_detection::CollisionResult& result = *i;
         if(result.collision)
         {
+          //ROS_ERROR_STREAM("CollisionCheck state found collision with contacts: ");
+          //for(auto item : i->contacts)
+          //{
+          //  ROS_ERROR_STREAM(item.first.first << " with " << item.first.second);
+          //}
           raw_costs_(t) = collision_penalty_;
           validity = false;
           break;
@@ -349,8 +354,9 @@ bool CollisionCheck::checkIntermediateCollisions(const Eigen::VectorXd& start,
   {
     interval = i*dt;
     start_state->interpolate(*end_state,interval,*mid_state) ;
-    if(planning_scene_->isStateColliding(*mid_state))
+    if(planning_scene_->isStateColliding(*mid_state, "", false))
     {
+      ROS_ERROR_STREAM_THROTTLE(1.0,"CollisionCheck intermediate state in collision");
       return false;
     }
   }
