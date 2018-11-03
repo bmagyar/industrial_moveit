@@ -33,7 +33,7 @@
 #include <stomp_moveit/utils/polynomial.h>
 
 #include <trac_ik/trac_ik.hpp>
-#include <stomp_moveit/rosconsole_extras.h>
+#include <stomp_core/rosconsole_extras.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 
 
@@ -258,7 +258,10 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
     }
 
     stomp_->setConfig(config_copy);
-    planning_success = stomp_->solve(initial_parameters, parameters);
+    {
+      MeasureTime measurer("stomp->solve()");
+      planning_success = stomp_->solve(initial_parameters, parameters);
+    }
   }
   else
   {
@@ -280,7 +283,11 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
     }
 
     stomp_->setConfig(config_copy);
-    planning_success = stomp_->solve(start,goal,parameters);
+
+    {
+      MeasureTime measurer("stomp->solve()");
+      planning_success = stomp_->solve(start,goal,parameters);
+    }
   }
 
   // stopping timer
@@ -312,6 +319,7 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
     return false;
   }
 
+MeasureTime measurer("CHECKPLANNINGSCENE");
   // checking against planning scene
   if(planning_scene_ && !planning_scene_->isPathValid(*res.trajectory_.back(),group_,true))
   {
@@ -329,6 +337,7 @@ bool StompPlanner::solve(planning_interface::MotionPlanDetailedResponse &res)
 
 bool StompPlanner::getSeedParameters(Eigen::MatrixXd& parameters) const
 {
+  MeasureTime measurer("getSeedParameters");
   using namespace utils::kinematics;
   using namespace utils::polynomial;
 
@@ -480,6 +489,7 @@ bool StompPlanner::getSeedParameters(Eigen::MatrixXd& parameters) const
 bool StompPlanner::parametersToJointTrajectory(const Eigen::MatrixXd& parameters,
                                                trajectory_msgs::JointTrajectory& trajectory)
 {
+  MeasureTime measurer("parametersToJointTrajectory");
   // filling trajectory joint values
   trajectory.joint_names = robot_model_->getJointModelGroup(group_)->getActiveJointModelNames();
   trajectory.points.clear();
@@ -576,6 +586,7 @@ bool StompPlanner::extractSeedJointTrajectory(const moveit_msgs::MotionPlanReque
 
 bool StompPlanner::extractSeedCartesianTrajectory(const moveit_msgs::MotionPlanRequest& req, trajectory_msgs::JointTrajectory& seed) const
 {
+  MeasureTime measurer("extractSeedCartesianTrajectory");
   using namespace moveit::core;
   using namespace utils::kinematics;
   const JointModelGroup* joint_group = robot_model_->getJointModelGroup(group_);
@@ -668,6 +679,7 @@ bool StompPlanner::extractSeedTrajectory(const moveit_msgs::MotionPlanRequest& r
 
 moveit_msgs::TrajectoryConstraints StompPlanner::encodeSeedTrajectory(const trajectory_msgs::JointTrajectory &seed)
 {
+  MeasureTime measurer("encodeSeedTrajectory");
   moveit_msgs::TrajectoryConstraints res;
 
   const auto dof = seed.joint_names.size();
@@ -716,6 +728,7 @@ bool StompPlanner::isCartesianSeed() const
 
 bool StompPlanner::getStartAndGoal(Eigen::VectorXd& start, Eigen::VectorXd& goal)
 {
+  MeasureTime measurer("getStartAndGoal");
   using namespace moveit::core;
   using namespace utils::kinematics;
 

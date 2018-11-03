@@ -73,23 +73,28 @@ std::string shape(const Eigen::MatrixXd& mat)
     return ss.str();
 }
 
+#include <chrono>
+using namespace std::chrono;
 class MeasureTime
 {
+  typedef ros::Time clock_type;
 public:
-
-  MeasureTime(std::string name)
-  : start_time(ros::WallTime::now())
+  MeasureTime(std::string name, int seq=-1)
+  : start_time_(clock_type::now())
   , name_(name)
+  , seq_(seq)
   {}
 
   ~MeasureTime()
   {
-    ros::WallDuration wd = ros::WallTime::now() - start_time;
-    ROS_CYAN_STREAM(name_ << " elapsed time: " << wd);
+    //auto wd = microseconds(clock_type::now() - start_time_).count();
+    //ROS_CYAN_STREAM(name_ << seq_ << " elapsed time: " << (start_time_ - clock_type::now()) << "s, ");// << seconds << " us");
   }
 private:
-  const ros::WallTime start_time;
+  //const clock_type::time_point start_time_;
+  const clock_type start_time_;
   const std::string name_;
+  const int seq_;
 };
 
 

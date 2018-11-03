@@ -32,6 +32,7 @@
 #include <stomp_core/utils.h>
 #include <numeric>
 #include "stomp_core/stomp.h"
+#include <stomp_core/rosconsole_extras.h>
 
 static const double DEFAULT_NOISY_COST_IMPORTANCE_WEIGHT = 1.0; /**< Default noisy cost importance weight */
 static const double MIN_COST_DIFFERENCE = 1e-8; /**< Minimum cost difference allowed during probability calculation */
@@ -241,22 +242,25 @@ bool Stomp::solve(const Eigen::MatrixXd& initial_parameters,
   unsigned int valid_iterations = 0;
   current_lowest_cost_ = std::numeric_limits<double>::max();
 
-  // computing initialial trajectory cost
-  if(!computeOptimizedCost())
   {
-    ROS_ERROR("Failed to calculate initial trajectory cost");
-    return false;
+    MeasureTime timer("computeOptimizedCost");
+
+    // computing initialial trajectory cost
+    if(!computeOptimizedCost())
+    {
+      ROS_ERROR("Failed to calculate initial trajectory cost");
+      return false;
+    }
   }
 
   while(current_iteration_ <= config_.num_iterations && runSingleIteration())
   {
-
-    ROS_DEBUG("STOMP completed iteration %i with cost %f",current_iteration_,current_lowest_cost_);
+    ROS_WARN("STOMP completed iteration %i with cost %f",current_iteration_,current_lowest_cost_);
 
 
     if(parameters_valid_)
     {
-      ROS_DEBUG("Found valid solution, will iterate %i more time(s) ",
+      ROS_INFO("Found valid solution, will iterate %i more time(s) ",
                config_.num_iterations_after_valid - valid_iterations);
 
       valid_iterations++;
@@ -421,6 +425,8 @@ bool Stomp::cancel()
 
 bool Stomp::runSingleIteration()
 {
+  MeasureTime timer("runSingleIteration()");
+
   if(!proceed_)
   {
     return false;
@@ -441,6 +447,7 @@ bool Stomp::runSingleIteration()
 
 bool Stomp::generateNoisyRollouts()
 {
+  MeasureTime timer("generateNoisyRollouts");
   // calculating number of rollouts to reuse from previous iteration
   std::vector< std::pair<double,int> > rollout_cost_sorter; // Used to sort noisy trajectories in ascending order wrt their total cost
   double h = config_.exponentiated_cost_sensitivity;
@@ -531,6 +538,7 @@ bool Stomp::generateNoisyRollouts()
 
 bool Stomp::filterNoisyRollouts()
 {
+  MeasureTime timer("filterNoisyRollouts");
   // apply post noise generation filters
   bool filtered = false;
   for(auto r = 0u ; r < config_.num_rollouts; r++)
@@ -552,6 +560,7 @@ bool Stomp::filterNoisyRollouts()
 
 bool Stomp::computeNoisyRolloutsCosts()
 {
+  MeasureTime timer("computeNoisyRollouts");
   // computing state and control costs
   bool valid = computeRolloutsStateCosts() && computeRolloutsControlCosts();
 
@@ -590,7 +599,7 @@ bool Stomp::computeNoisyRolloutsCosts()
 
 bool Stomp::computeRolloutsStateCosts()
 {
-
+  MeasureTime timer("computeRolloutsStateCosts");
   bool all_valid = true;
   bool proceed = true;
   for(auto r = 0u ; r < config_.num_rollouts; r++)
@@ -617,6 +626,7 @@ bool Stomp::computeRolloutsStateCosts()
 }
 bool Stomp::computeRolloutsControlCosts()
 {
+  MeasureTime timer("computeRolloutsControlCosts");
   Eigen::ArrayXXd Ax; // accelerations
   for(auto r = 0u ; r < num_active_rollouts_; r++)
   {
@@ -642,7 +652,7 @@ bool Stomp::computeRolloutsControlCosts()
 
 bool Stomp::computeProbabilities()
 {
-
+  MeasureTime timer("computeProbabilities");
   double cost;
   double min_cost;
   double max_cost;
@@ -731,6 +741,7 @@ bool Stomp::computeProbabilities()
 
 bool Stomp::updateParameters()
 {
+  MeasureTime timer("updateParameters");
   // computing updates from probabilities using convex combination
   parameters_updates_.setZero();
   for(auto d = 0u; d < config_.num_dimensions ; d++)
@@ -759,7 +770,7 @@ bool Stomp::updateParameters()
 
 bool Stomp::computeOptimizedCost()
 {
-
+  MeasureTime timer("computeOptimizedCosts");
   // control costs
   parameters_total_cost_ = 0;
   if(config_.control_cost_weight > MIN_CONTROL_COST_WEIGHT)
