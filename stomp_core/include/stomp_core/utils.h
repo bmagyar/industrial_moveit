@@ -97,6 +97,7 @@ struct StompConfiguration
 
   // Cost calculation
   double control_cost_weight;            /**< @brief Percentage of the trajectory accelerations cost to be applied in the total cost calculation >*/
+  bool optimization_enabled = true;      /**< @brief When false, no optimization will take place, the seed trajectory will fall through >*/
 };
 
 /** @brief The number of columns in the finite differentiation rule */

@@ -238,6 +238,13 @@ bool Stomp::solve(const Eigen::MatrixXd& initial_parameters,
     }
   }
 
+  if(not config_.optimization_enabled)
+  {
+    ROS_YELLOW_STREAM("OPTIMIZATION NOT ENABLED, returning initial trajectory as result.");
+    parameters_optimized = initial_parameters;
+    return true;
+  }
+
   current_iteration_ = 1;
   unsigned int valid_iterations = 0;
   current_lowest_cost_ = std::numeric_limits<double>::max();

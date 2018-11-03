@@ -63,6 +63,7 @@ bool parseConfig(XmlRpc::XmlRpcValue config,const moveit::core::JointModelGroup*
   stomp_config.max_rollouts = 100;
   stomp_config.num_rollouts = 10;
   stomp_config.exponentiated_cost_sensitivity = 10.0;
+  stomp_config.optimization_enabled = true;
 
   // Load optional config parameters if they exist
   if (config.hasMember("control_cost_weight"))
@@ -91,6 +92,9 @@ bool parseConfig(XmlRpc::XmlRpcValue config,const moveit::core::JointModelGroup*
 
   if (config.hasMember("exponentiated_cost_sensitivity"))
     stomp_config.exponentiated_cost_sensitivity = static_cast<int>(config["exponentiated_cost_sensitivity"]);
+
+  if (config.hasMember("optimization_enabled"))
+    stomp_config.optimization_enabled = static_cast<bool>(config["optimization_enabled"]);
 
   // getting number of joints
   stomp_config.num_dimensions = group->getActiveJointModels().size();
